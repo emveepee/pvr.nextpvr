@@ -398,3 +398,33 @@ msgstr ""
 msgctxt "#30208"
 msgid "Every 5 minutes"
 msgstr ""
+
+#empty strings from id 30209 to 303299
+
+msgctxt "#30330"
+msgid "Important (Highest)"
+msgstr ""
+
+#. Recording priority representation
+#: src/Tvheadend.cpp
+msgctxt "#30331"
+msgid "High"
+msgstr ""
+
+#. Recording priority representation
+#: src/Tvheadend.cpp
+msgctxt "#30332"
+msgid "Normal"
+msgstr ""
+
+#. Recording priority representation
+#: src/Tvheadend.cpp
+msgctxt "#30333"
+msgid "Low"
+msgstr ""
+
+#. Recording priority representation
+#: src/Tvheadend.cpp
+msgctxt "#30334"
+msgid "Unimportant (Lowest)"
+msgstr ""

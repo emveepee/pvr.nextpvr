@@ -37,6 +37,11 @@ namespace NextPVR
   constexpr unsigned int TIMER_REPEATING_ADVANCED = TIMER_REPEATING_MIN + 3;
   constexpr unsigned int TIMER_REPEATING_MAX = TIMER_REPEATING_MIN + 3;
 
+  constexpr unsigned int NEXTPVR_VERSION_PRIORITY = 60105;
+  constexpr unsigned int RECURRING_PRIORITY_MAP_OID = 0;
+  constexpr unsigned int RECURRING_PRIORITY_MAP_CLASS = 1;
+  constexpr unsigned int RECURRING_PRIORITY_MAP_NAME = 2;
+
   class ATTR_DLL_LOCAL Timers
   {
     typedef enum
@@ -70,8 +75,22 @@ namespace NextPVR
     PVR_ERROR UpdateTimer(const kodi::addon::PVRTimer& timer);
     bool UpdatePvrTimer(tinyxml2::XMLNode* pRecordingNode, kodi::addon::PVRTimer& tag);
     time_t m_lastTimerUpdateTime = 0;
+    void TestPriority();
 
   private:
+
+    typedef enum
+    {
+      PRIORITY_DEFAULT = -1,
+      PRIORITY_IMPORTANT = -2,
+      PRIORITY_HIGH = -3,
+      PRIORITY_NORMAL = -4,
+      PRIORITY_LOW = -5,
+      PRIORITY_UNIMPORTANT = -6
+    } nextpvr_priorityClass_t;
+
+    typedef std::tuple<int, int, std::string> priorityDetailTuple;
+
     Timers() = default;
 
     Timers(Timers const&) = delete;
@@ -90,5 +109,15 @@ namespace NextPVR
     std::string GetTimerDescription(int id);
 
     int GetEPGOidForTimer(const kodi::addon::PVRTimer& timer);
+
+    bool BubbleSortPriority(int id, int selectedPrioity, int desiredPriority);
+    void InitializePriorities(tinyxml2::XMLNode* recurringNode);
+    int GetSelectedPriority(int group, int oid, int& desiredPriority);
+    int SearchGap(int startingPriority);
+
+    // key=priority values= recurring oid, priorityClass, name
+    std::map<int, priorityDetailTuple> m_recurringPriorities;
+
+    int m_priorityClasses[5]{};
   };
 } // namespace NextPVR
