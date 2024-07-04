@@ -92,5 +92,11 @@ namespace timeshift {
     }
     virtual PVR_ERROR GetStreamTimes(kodi::addon::PVRStreamTimes& times) override;
 
+    virtual bool IsRealTimeStream() const override
+    {
+      if (time(nullptr) - m_streamStart < 10 + m_prebuffer)
+        return true;
+      return false;
+    }
   };
 }

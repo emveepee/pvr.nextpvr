@@ -36,6 +36,7 @@ namespace NextPVR
     int DoRequest(std::string resource, std::string& response);
     bool DoActionRequest(std::string resource);
     tinyxml2::XMLError DoMethodRequest(std::string resource, tinyxml2::XMLDocument& doc, bool compresssed = true);
+    // tinyxml2::XMLError DoCachedMethodRequest(std::string resource, tinyxml2::XMLDocument& doc, std::string cacheFile = nullptr);
     int FileCopy(const char* resource, std::string fileName);
     tinyxml2::XMLError  GetLastUpdate(std::string resource, time_t& last_update);
     bool PingBackend();
@@ -53,7 +54,7 @@ namespace NextPVR
   private:
     Request(Request const&) = delete;
     void operator=(Request const&) = delete;
-
+    tinyxml2::XMLError ParseMethodRequest(tinyxml2::XMLDocument& doc, std::string xml);
     std::shared_ptr<InstanceSettings> m_settings;
     mutable std::mutex m_mutexRequest;
     time_t m_start = 0;

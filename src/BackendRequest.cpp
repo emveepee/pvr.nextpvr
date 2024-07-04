@@ -13,6 +13,7 @@
 #include <kodi/Network.h>
 #include <kodi/gui/dialogs/Select.h>
 #include <kodi/tools/StringUtils.h>
+#include <zlib.h>
 
 using namespace NextPVR::utilities;
 
@@ -61,7 +62,49 @@ namespace NextPVR
     tinyxml2::XMLDocument doc;
     return DoMethodRequest(resource, doc, false) == tinyxml2::XML_SUCCESS;
   }
+  /*
+  tinyxml2::XMLError Request::DoCachedRequest(std::string resource, tinyxml2::XMLDocument& doc, std::string cacheFile)
+  {
+    const std::string filename = kodi::tools::StringUtils::Format("%s%s.cache", m_settings->m_instanceDirectory.c_str(), resource.c_str());
+    gzFile gz_file;
+    //open the file for writing in binary mode
+    gz_file = gzopen(kodi::vfs::TranslateSpecialProtocol(filename).c_str(), "wb");
 
+    std::stringstream data;
+    //Fill stream with data
+
+    //Get the size of the stream
+    unsigned long int file_size = sizeof(char) * response.size();
+    //Write the size of the stream, this is needed so that we know
+    //how much to read back in later
+    gzwrite(gz_file, (void*)&file_size, sizeof(file_size));
+    //Write the data
+    gzwrite(gz_file, (void*)(response.c_str()), file_size);
+    //close the file
+    gzclose(gz_file);
+
+    //open the file for reading in binary mode
+    gz_file = gzopen("c:/temp/filename.dat", "rb");
+    //this variable will hold the size of the file
+    unsigned long int size;
+    //we wrote out a unsigned long int when storing the file
+    //read this back in to get the size of the uncompressed data
+    gzread(gz_file, (void*)&size, sizeof(size));
+    //create a string to hold data
+    std::string data1;
+    //resize the string
+    data1.resize(size / sizeof(char));
+    //read in and uncompress the entire data set at once
+    gzread(gz_file, (void*)data1.data(), size);
+    //close the file
+    gzclose(gz_file);
+
+    if (data1 == response)
+      int b = 1;
+
+    return DoMethodRequest(resource, doc);
+  }
+  */
   tinyxml2::XMLError Request::DoMethodRequest(std::string resource, tinyxml2::XMLDocument& doc, bool compressed)
   {
     auto start = std::chrono::steady_clock::now();
@@ -96,41 +139,47 @@ namespace NextPVR
         response.append(buffer, count);
       }
       stream.Close();
-      retError = doc.Parse(response.c_str());
-      if (retError == tinyxml2::XML_SUCCESS)
+      retError = ParseMethodRequest(doc, response);
+    }
+    int milliseconds = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count());
+    kodi::Log(ADDON_LOG_DEBUG, "DoMethodRequest %s %d %d %d", resource.c_str(), retError, response.length(), milliseconds);
+    return retError;
+  }
+
+  tinyxml2::XMLError Request::ParseMethodRequest(tinyxml2::XMLDocument& doc, std::string xml)
+  {
+    tinyxml2::XMLError retError = doc.Parse(xml.c_str());;
+    if (retError == tinyxml2::XML_SUCCESS)
+    {
+      const char* attrib = doc.RootElement()->Attribute("stat");
+      if (attrib == nullptr || strcmp(attrib, "ok"))
       {
-        const char* attrib = doc.RootElement()->Attribute("stat");
-        if ( attrib == nullptr || strcmp(attrib, "ok"))
+        kodi::Log(ADDON_LOG_DEBUG, "DoMethodRequest bad return %s", attrib);
+        retError = tinyxml2::XML_NO_ATTRIBUTE;
+        if (!strcmp(attrib, "fail"))
         {
-          kodi::Log(ADDON_LOG_DEBUG, "DoMethodRequest bad return %s", attrib);
-          retError = tinyxml2::XML_NO_ATTRIBUTE;
-          if (!strcmp(attrib, "fail"))
+          const tinyxml2::XMLElement* err = doc.RootElement()->FirstChildElement("err");
+          if (err)
           {
-            const tinyxml2::XMLElement* err = doc.RootElement()->FirstChildElement("err");
-            if (err)
+            const char* code = err->Attribute("code");
+            if (code)
             {
-              const char* code = err->Attribute("code");
-              if (code)
+              kodi::Log(ADDON_LOG_DEBUG, "DoMethodRequest error code %s", code);
+              if (atoi(code) == 8)
               {
-                kodi::Log(ADDON_LOG_DEBUG, "DoMethodRequest error code %s", code);
-                if (atoi(code) == 8)
-                {
-                  ClearSID();
-                  retError = tinyxml2::XML_ERROR_FILE_COULD_NOT_BE_OPENED;
-                  //m_pvrclient.ResetConnection();
-                }
+                ClearSID();
+                retError = tinyxml2::XML_ERROR_FILE_COULD_NOT_BE_OPENED;
+                //m_pvrclient.ResetConnection();
               }
             }
           }
         }
-        else
-        {
-          RenewSID();
-        }
+      }
+      else
+      {
+        RenewSID();
       }
     }
-    int milliseconds = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count());
-    kodi::Log(ADDON_LOG_DEBUG, "DoMethodRequest %s %d %d %d", resource.c_str(), retError, response.length(), milliseconds);
     return retError;
   }
 
