@@ -305,7 +305,7 @@ void cPVRClientNextPVR::ConfigurePostConnectionOptions()
   if (m_lastEPGUpdateTime == 0)
     m_request.GetLastUpdate("system.epg.summary", m_lastEPGUpdateTime);
 
-  m_channels.CacheAllChannels(m_lastEPGUpdateTime);
+  m_channels.ResetChannelList(m_lastEPGUpdateTime);
 }
 
 /* IsUp()
@@ -335,6 +335,14 @@ bool cPVRClientNextPVR::IsUp()
           {
             if (lastUpdate > m_lastEPGUpdateTime)
             {
+              // if channel list changed trigger channel updates
+              if (m_channels.ResetChannelList(lastUpdate))
+              {
+                kodi::Log(ADDON_LOG_DEBUG, "Trigger Channel update start");
+                TriggerChannelUpdate();
+                kodi::Log(ADDON_LOG_DEBUG, "Trigger Channel Groups update start");
+                TriggerChannelGroupsUpdate();
+              }                                
               // trigger EPG updates for all channels with a guide source
               kodi::Log(ADDON_LOG_DEBUG, "Trigger EPG update start");
               int channels = 0;
